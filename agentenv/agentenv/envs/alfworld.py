@@ -1,5 +1,5 @@
 import json
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 import re
 
 import requests
@@ -513,7 +513,8 @@ class AlfWorldEnvClient(BaseEnvClient):
     def __init__(
         self,
         env_server_base: str,
-        data_len: int,
+        task_ids: Sequence[str],
+        seed: int,
         *args,
         timeout: int = 300,
         **kwargs,
@@ -521,7 +522,12 @@ class AlfWorldEnvClient(BaseEnvClient):
         super().__init__(*args, **kwargs)
         self.env_server_base = env_server_base
         self.timeout = timeout
-        self.data_len = data_len
+        self.task_ids = tuple(task_ids)
+        if not self.task_ids or not all(isinstance(task_id, str) and task_id for task_id in self.task_ids):
+            raise ValueError("task_ids must contain stable non-empty task identifiers")
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            raise ValueError("seed must be a non-negative integer")
+        self.seed = seed
 
         response = requests.post(f"{self.env_server_base}/create", timeout=self.timeout)
         response.raise_for_status()
@@ -535,7 +541,7 @@ class AlfWorldEnvClient(BaseEnvClient):
         self.info = None
 
     def __len__(self):
-        return self.data_len
+        return len(self.task_ids)
 
     def _post(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
         payload = dict(data)
@@ -585,7 +591,17 @@ class AlfWorldEnvClient(BaseEnvClient):
             done=response["done"],
         )
 
-    def reset(self, task_id: str, seed: int) -> dict[str, Any]:
+    def reset(self, idx: int) -> dict[str, Any]:
+        if isinstance(idx, bool) or not isinstance(idx, int) or idx < 0:
+            raise TypeError("ALFWorld task index must be a non-negative integer")
+        try:
+            task_id = self.task_ids[idx]
+        except IndexError as error:
+            raise IndexError(f"ALFWorld task index out of range: {idx}") from error
+        return self.reset_task(task_id, self.seed)
+
+    def reset_task(self, task_id: str, seed: int) -> dict[str, Any]:
+        """Reset by stable manifest identity without exposing an array index to the service."""
         response = self._post("reset", {"task_id": task_id, "seed": seed})
         self.info = {
             "observation": response["observation"],
@@ -606,3 +622,6 @@ class AlfWorldTask(BaseTask):
         self, client_args: Mapping[str, Any], *args, n_clients: int = 1, **kwargs
     ) -> None:
         super().__init__(client_args, n_clients, *args, **kwargs)
+
+    def close(self) -> list[dict[str, Any]]:
+        return [client.close() for client in self.clients]
