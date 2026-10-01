@@ -1,12 +1,20 @@
+"""ALFWorld HTTP request models."""
+
 from pydantic import BaseModel
 
 
+class ResetRequestBody(BaseModel):
+    session_id: str
+    task_id: str
+    seed: int
+
+
 class StepRequestBody(BaseModel):
-    id: int
+    session_id: str
     action: str
 
 
-class ResetRequestBody(BaseModel):
-    id: int
-    game: int
-    world_type: str
+class SessionRequestBody(BaseModel):
+    session_id: str
+
+__all__ = ["ResetRequestBody", "SessionRequestBody", "StepRequestBody"]

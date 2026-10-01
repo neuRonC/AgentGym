@@ -3,7 +3,6 @@ from typing import Any, Mapping
 import re
 
 import requests
-from requests.exceptions import RequestException
 
 from agentenv.controller import (
     BaseAdapter,
@@ -20,10 +19,6 @@ from agentenv.controller.types import (
     ConversationMessage,
     StepOutput,
 )
-
-from agentenv.controller import BaseEnvClient, BaseTask
-from agentenv.controller.types import ConversationMessage, StepOutput
-
 
 ALFWORLD_FUNCTION_DESCRIPTION = [
         {
@@ -528,38 +523,38 @@ class AlfWorldEnvClient(BaseEnvClient):
         self.timeout = timeout
         self.data_len = data_len
 
-        ok = requests.post(f"{self.env_server_base}/create", timeout=self.timeout)
-        if ok.status_code != 200:
-            raise requests.RequestException(f"Failed to create environment: {ok}")
+        response = requests.post(f"{self.env_server_base}/create", timeout=self.timeout)
+        response.raise_for_status()
         
         self.conversation_start = self.adapter_cls.conversation_start_dict[
             self.action_format
         ]
         
-        ok = ok.json()
-        # print(ok)
-        self.env_id = ok["id"]
+        payload = response.json()
+        self.session_id = payload["session_id"]
         self.info = None
 
     def __len__(self):
         return self.data_len
 
     def _post(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
-        data["id"] = self.env_id
+        payload = dict(data)
+        payload["session_id"] = self.session_id
         res = requests.post(
             f"{self.env_server_base}/{path}",
-            json=data,
+            json=payload,
             timeout=self.timeout,
         )
-        assert res.status_code == 200
+        res.raise_for_status()
         return res.json()
 
     def _get(self, path: str) -> dict[str, Any]:
         res = requests.get(
-            f"{self.env_server_base}/{path}?id={self.env_id}",
+            f"{self.env_server_base}/{path}",
+            params={"session_id": self.session_id},
             timeout=self.timeout,
         )
-        assert res.status_code == 200
+        res.raise_for_status()
         return res.json()
 
     def observe(self) -> str:
@@ -590,8 +585,8 @@ class AlfWorldEnvClient(BaseEnvClient):
             done=response["done"],
         )
 
-    def reset(self, game: int, world_type: str = "Text") -> dict[str, Any]:
-        response = self._post("reset", {"game": game, "world_type": world_type})
+    def reset(self, task_id: str, seed: int) -> dict[str, Any]:
+        response = self._post("reset", {"task_id": task_id, "seed": seed})
         self.info = {
             "observation": response["observation"],
             "available_actions": response["available_actions"],
@@ -600,9 +595,8 @@ class AlfWorldEnvClient(BaseEnvClient):
         }
         return response
 
-    def close(self):
-        response = self._post("close",{})
-        return response
+    def close(self) -> dict[str, Any]:
+        return self._post("close", {})
 
 class AlfWorldTask(BaseTask):
     env_client_cls = AlfWorldEnvClient

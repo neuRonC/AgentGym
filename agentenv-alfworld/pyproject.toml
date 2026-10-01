@@ -1,18 +1,27 @@
 [project]
 name = "agentenv_alfworld"
-version = "0.0.1"
-description = ""
+version = "0.1.0"
+description = "AgentGym ALFWorld 0.5.0 TextWorld HTTP service"
 authors = [
     {name = "zsxmwjz", email = "13816862266@163.com"},
 ]
-dependencies = ["opencv-python-headless", "gym", "fastapi", "uvicorn"]
-requires-python = "~=3.9"
+dependencies = [
+    "alfworld @ git+https://github.com/alfworld/alfworld.git@aaba6870f86c5be6a08a491f32a50b906227bc3e",
+    "fastapi",
+    "numpy<2",
+    "pyyaml",
+    "uvicorn",
+]
+requires-python = ">=3.9,<3.10"
 readme = "README.md"
 license = {text = "MIT"}
 
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.build]
+includes = ["agentenv_alfworld/", "configs/"]
 
 [project.scripts]
 alfworld = "agentenv_alfworld:launch"

@@ -1,5 +1,7 @@
-pip install alfworld==0.3.3
-pip uninstall opencv-python -y
-pip install -e .
-export ALFWORLD_DATA=~/.cache/alfworld
-alfworld-download
+#!/usr/bin/env sh
+set -eu
+
+# This helper installs code only. Dataset acquisition is deliberately separate:
+# run the official alfworld-download CLI with an explicit --data-dir, then set
+# ALFWORLD_DATA and ALFWORLD_TASK_MANIFEST before starting the service.
+python -m pip install .
