@@ -28,7 +28,7 @@ def _required_path(name: str) -> Path:
 def create_app() -> FastAPI:
     data_root = _required_path("ALFWORLD_DATA")
     manifest_path = _required_path("ALFWORLD_TASK_MANIFEST")
-    default_config = Path(__file__).resolve().parent.parent / "configs" / "base_config.yaml"
+    default_config = Path(__file__).resolve().parent / "configs" / "base_config.yaml"
     config_path = Path(os.environ.get("ALFWORLD_CONFIG", str(default_config))).resolve()
     if not config_path.is_file():
         raise RuntimeError(f"ALFWorld config is missing: {config_path}")

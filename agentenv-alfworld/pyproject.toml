@@ -17,11 +17,14 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["setuptools>=82.0.1"]
+build-backend = "setuptools.build_meta"
 
-[tool.pdm.build]
-includes = ["agentenv_alfworld/", "configs/"]
+[tool.setuptools.package-data]
+agentenv_alfworld = ["configs/*.yaml"]
+
+[tool.setuptools.packages.find]
+include = ["agentenv_alfworld*"]
 
 [project.scripts]
 alfworld = "agentenv_alfworld:launch"
