@@ -21,7 +21,8 @@ The manifest must identify ALFWorld 0.5.0 tasks from the official `train`,
 used as official split labels.
 
 `ALFWORLD_CONFIG` may override the packaged TextWorld config.
-`ALFWORLD_VERIFY_HASHES=1` enables full input hashing at service startup.
+Startup validates the manifest but does not scan every task file. Verify the
+data separately when preparing or checking a deployment.
 
 ## Install and launch
 

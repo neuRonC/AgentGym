@@ -89,6 +89,16 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ManifestError, "safe relative"):
                 TaskManifest.load(manifest_path)
 
+    def test_service_startup_does_not_scan_all_task_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest_path = _make_manifest(root)
+            manifest = TaskManifest.load(manifest_path)
+            (root / manifest.tasks[0].game_file).unlink()
+            ALFWorldService(root, manifest_path, lambda task, seed: FakeEnvironment(task.task_id))
+            with self.assertRaisesRegex(ManifestError, "file is missing"):
+                manifest.verify_files(root)
+
 
 class ServiceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -103,7 +113,7 @@ class ServiceTests(unittest.TestCase):
             self.environments.append(environment)
             return environment
 
-        self.service = ALFWorldService(self.root, self.manifest_path, factory, verify_hashes=True)
+        self.service = ALFWorldService(self.root, self.manifest_path, factory)
 
     def tearDown(self) -> None:
         self.service.close_all()

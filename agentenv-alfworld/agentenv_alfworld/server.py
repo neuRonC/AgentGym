@@ -40,7 +40,6 @@ def create_app() -> FastAPI:
         manifest_path,
         official_environment_factory(data_root, config_path),
         alfworld_version=version,
-        verify_hashes=os.environ.get("ALFWORLD_VERIFY_HASHES", "0") == "1",
     )
 
     @asynccontextmanager

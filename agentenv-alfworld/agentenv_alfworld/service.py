@@ -54,7 +54,6 @@ class ALFWorldService:
         environment_factory: EnvironmentFactory,
         *,
         alfworld_version: str = "0.5.0",
-        verify_hashes: bool = False,
     ) -> None:
         self.data_root = Path(data_root).resolve()
         if not self.data_root.is_dir():
@@ -65,7 +64,6 @@ class ALFWorldService:
             raise ManifestError(
                 f"manifest ALFWorld version {self.manifest.alfworld_version} does not match {alfworld_version}"
             )
-        self.manifest.verify_files(self.data_root, verify_hashes=verify_hashes)
         self.tasks = self.manifest.by_id()
         self.environment_factory = environment_factory
         self.alfworld_version = alfworld_version
