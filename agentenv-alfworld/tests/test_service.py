@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
 from typing import Any
+from unittest.mock import Mock, patch
 
 from agentenv_alfworld.manifest import ManifestError, TaskManifest
-from agentenv_alfworld.service import ALFWorldService, ServiceError
+from agentenv_alfworld.service import ALFWorldService, ServiceError, _close_pddl_environment
 
 
 def _sha256(path: Path) -> str:
@@ -151,6 +154,18 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(ServiceError) as context:
             self.service.reset(session_id, "valid_seen:not-real", 42)
         self.assertEqual((context.exception.status_code, context.exception.code), (404, "unknown_task"))
+
+    def test_pddl_close_releases_library_once(self) -> None:
+        library = object()
+        environment = type("PddlEnvironment", (), {"downward_lib": library, "_pddl_state": object()})()
+        fast_downward = ModuleType("fast_downward")
+        fast_downward.close_lib = Mock()
+        with patch.dict(sys.modules, {"fast_downward": fast_downward}):
+            _close_pddl_environment(environment)
+            _close_pddl_environment(environment)
+        fast_downward.close_lib.assert_called_once_with(library)
+        self.assertIsNone(environment.downward_lib)
+        self.assertIsNone(environment._pddl_state)
 
 
 if __name__ == "__main__":

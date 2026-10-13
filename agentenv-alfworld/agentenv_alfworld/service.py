@@ -217,6 +217,11 @@ def official_environment_factory(data_root: Path, config_path: Path) -> Environm
     import numpy as np
     import yaml
     from alfworld.agents.environment.alfred_tw_env import AlfredTWEnv
+    from textworld.envs.pddl import PddlEnv
+
+    # TextWorld 1.7 leaves each copied Fast Downward library mapped after close.
+    # This service owns the single-worker PDDL lifecycle, so release it there.
+    PddlEnv.close = _close_pddl_environment
 
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
@@ -240,6 +245,19 @@ def official_environment_factory(data_root: Path, config_path: Path) -> Environm
         return SingleGameAlfredTWEnv(task, seed).init_env(batch_size=1)
 
     return create
+
+
+def _close_pddl_environment(environment: Any) -> None:
+    """Release the per-game Fast Downward library when TextWorld closes a game."""
+
+    library = getattr(environment, "downward_lib", None)
+    if library is None:
+        return
+    environment.downward_lib = None
+    environment._pddl_state = None
+    import fast_downward
+
+    fast_downward.close_lib(library)
 
 
 def _batch_item(value: Any, field: str) -> Any:
